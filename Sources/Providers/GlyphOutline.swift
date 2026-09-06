@@ -401,23 +401,25 @@ enum GlyphOutline {
     /// One loop, no counters, so the even-odd fill that keeps the OpenAI knot
     /// open is a plain solid here. The diagonal's horizontal extent matches
     /// the bar depths (0.2 top and bottom) so the stroke reads at one weight.
+    /// Last-resort ring if the `glyph-grok` asset is missing. The real mark is
+    /// the two-crescent Grok (xAI) path in that asset; a polyline cannot hold
+    /// those curves without looking traced.
+    static let grok: [[CGPoint]] = {
+        func circle(_ r: CGFloat, n: Int) -> [CGPoint] {
+            (0..<n).map { i in
+                let t = CGFloat(i) / CGFloat(n) * 2 * .pi - .pi / 2
+                return CGPoint(x: 0.5 + r * cos(t), y: 0.5 + r * sin(t))
+            }
+        }
+        return [circle(0.48, n: 48), circle(0.32, n: 48)]
+    }()
+
     static let glm: [[CGPoint]] = [
         [CGPoint(x: 0.0200, y: 0.0000), CGPoint(x: 0.9800, y: 0.0000),
          CGPoint(x: 0.9800, y: 0.1850), CGPoint(x: 0.3180, y: 0.8000),
          CGPoint(x: 0.9800, y: 0.8000), CGPoint(x: 0.9800, y: 1.0000),
          CGPoint(x: 0.0200, y: 1.0000), CGPoint(x: 0.0200, y: 0.8150),
          CGPoint(x: 0.6820, y: 0.2000), CGPoint(x: 0.0200, y: 0.2000)]
-    ]
-
-    /// The X mark, drawn rather than traced — there is no design-frame source
-    /// for it. One polygon: two crossing bars with notched ends, closed.
-    static let grok: [[CGPoint]] = [
-        [CGPoint(x: 0.0800, y: 0.0200), CGPoint(x: 0.3000, y: 0.0200),
-         CGPoint(x: 0.5000, y: 0.3200), CGPoint(x: 0.7000, y: 0.0200),
-         CGPoint(x: 0.9200, y: 0.0200), CGPoint(x: 0.6200, y: 0.5000),
-         CGPoint(x: 0.9200, y: 0.9800), CGPoint(x: 0.7000, y: 0.9800),
-         CGPoint(x: 0.5000, y: 0.6800), CGPoint(x: 0.3000, y: 0.9800),
-         CGPoint(x: 0.0800, y: 0.9800), CGPoint(x: 0.3800, y: 0.5000)]
     ]
 
     /// A terminal prompt — chevron plus underscore bar. OpenCode lives in the
