@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    # First hosted image whose default Xcode carries the macOS 26 SDK the app
+    # targets (LSMinimumSystemVersion 26.0). If this label ever queues forever,
+    # the image doesn't exist yet on this runner fleet — fall back to
+    # `macos-latest` and select Xcode 26 explicitly with `xcode-select`.
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          sw_vers
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      # `make test` generates the project (gen) and runs the full suite with
+      # ad-hoc signing (DEV_SIGN), so no certificates or provisioning are
+      # needed here — by design, so anyone can build and CI stays secret-free.
+      - name: Build and test
+        run: make test
+
+      - name: Upload build artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            build/
+            ~/Library/Developer/Xcode/DerivedData/Burnrate-*/Logs/Build/*.xcactivitylog
+          if-no-files-found: ignore
+          retention-days: 7

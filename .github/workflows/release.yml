@@ -1,0 +1,100 @@
+# Release pipeline — DISABLED until signing infrastructure exists.
+#
+# It runs only when BOTH of these are true:
+#   1. A tag matching `v*` is pushed.
+#   2. The repository variable RELEASES_ENABLED is "true"
+#      (Settings → Secrets and variables → Actions → Variables).
+#
+# Required repository SECRETS (none of which exist yet — the job refuses
+# gracefully until they do):
+#
+#   APPLE_CERT_P12_BASE64     Developer ID Application certificate, exported
+#                             as .p12, base64: `base64 -i cert.p12 | pbcopy`
+#   APPLE_CERT_PASSWORD       the .p12 export password
+#   KEYCHAIN_PASSWORD         any password; used for the CI keychain only
+#   NOTARY_APPLE_ID           the Apple ID used with notarytool
+#   NOTARY_APP_PASSWORD       app-specific password for that Apple ID
+#   SPARKLE_PRIVATE_KEY_P12_BASE64 + SPARKLE_KEY_PASSWORD
+#                             EdDSA update-signing key from
+#                             `xcrun sparkle-generate-keys` (export the private
+#                             key from Keychain Access as .p12), so CI can sign
+#                             the appcast. Keep the public half in project.yml's
+#                             SUPublicEDKey and re-enable the SU flags there.
+#
+# Required repository VARIABLES:
+#   RELEASES_ENABLED = true
+#   APPLE_TEAM_ID    the 10-character Developer Program team ID
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    if: vars.RELEASES_ENABLED == 'true'
+    runs-on: macos-26
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Import signing certificate
+        env:
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN=build.keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          echo "$APPLE_CERT_P12_BASE64" | base64 --decode > cert.p12
+          security import cert.p12 \
+            -k "$KEYCHAIN" -P "$APPLE_CERT_PASSWORD" -T /usr/bin/codesign
+          rm cert.p12
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+
+      - name: Import Sparkle update-signing key
+        env:
+          SPARKLE_PRIVATE_KEY_P12_BASE64: ${{ secrets.SPARKLE_PRIVATE_KEY_P12_BASE64 }}
+          SPARKLE_KEY_PASSWORD: ${{ secrets.SPARKLE_KEY_PASSWORD }}
+        run: |
+          KEYCHAIN=build.keychain
+          echo "$SPARKLE_PRIVATE_KEY_P12_BASE64" | base64 --decode > sparkle.p12
+          security import sparkle.p12 \
+            -k "$KEYCHAIN" -P "$SPARKLE_KEY_PASSWORD" -T /usr/bin/security
+          rm sparkle.p12
+
+      - name: Store notarytool credentials
+        env:
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD }}
+        run: |
+          xcrun notarytool store-credentials burnrate-notary \
+            --apple-id "$NOTARY_APPLE_ID" \
+            --password "$NOTARY_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+
+      - name: Archive, sign, notarize, staple, verify
+        run: |
+          make release \
+            SIGNING_TEAM="$APPLE_TEAM_ID" \
+            NOTARY_PROFILE=burnrate-notary \
+            DOWNLOAD_PREFIX="${{ vars.DOWNLOAD_PREFIX || 'https://updates.burnrate.invalid/' }}"
+        env:
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "Burnrate ${{ github.ref_name }}" \
+            --generate-notes \
+            dist/Burnrate.dmg dist/appcast.xml
