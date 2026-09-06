@@ -51,7 +51,7 @@ final class ClaudeProfileTests: XCTestCase {
         let profile = ClaudeProfile(slug: "work",
                                     configDirectory: URL(fileURLWithPath: "/Users/example/.claude-work"))
         // `shasum -a 256` of the path, no trailing slash, no newline.
-        XCTAssertEqual(profile.keychainService, "Claude Code-credentials-19914660")
+        XCTAssertEqual(profile.keychainService, "Claude Code-credentials-dd1118a7")
     }
 
     /// The path is hashed as Claude Code sees it, and Claude Code does not see
@@ -59,7 +59,7 @@ final class ClaudeProfileTests: XCTestCase {
     func testATrailingSlashDoesNotChangeTheHash() {
         let slashed = ClaudeProfile(slug: "work",
                                     configDirectory: URL(fileURLWithPath: "/Users/example/.claude-work/"))
-        XCTAssertEqual(slashed.keychainService, "Claude Code-credentials-19914660")
+        XCTAssertEqual(slashed.keychainService, "Claude Code-credentials-dd1118a7")
     }
 
     func testProviderIDsAreRecognised() {
