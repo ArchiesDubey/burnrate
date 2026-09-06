@@ -66,36 +66,41 @@ final class WebSessionProvider: NSObject, UsageProvider {
         if let webView { return webView }
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()   // persists across launches
-        // Records the API calls the page makes, so an endpoint can be found by
-        // watching the site rather than by guessing at path names. Injected at
-        // document start, because the interesting calls happen during load.
-        configuration.userContentController.addUserScript(WKUserScript(
-            source: #"""
-            window.__notchCalls = [];
-            (function () {
-                const fetchImpl = window.fetch;
-                window.fetch = function (...args) {
-                    try {
-                        const url = args[0] && args[0].url ? args[0].url : args[0];
-                        window.__notchCalls.push(String(url));
-                    } catch (e) {}
-                    return fetchImpl.apply(this, args);
-                };
-                const openImpl = XMLHttpRequest.prototype.open;
-                XMLHttpRequest.prototype.open = function (method, url) {
-                    try { window.__notchCalls.push(String(url)); } catch (e) {}
-                    return openImpl.apply(this, arguments);
-                };
-            })();
-            """#,
-            injectionTime: .atDocumentStart,
-            forMainFrameOnly: false
-        ))
+        // The fetch-logger `recordCalls` needs is NOT injected here: it
+        // monkey-patches fetch and XHR in every frame of every page load,
+        // forever, and discovery is a developer tool that runs rarely. It is
+        // added for the duration of a `recordCalls` pass and removed after.
         let webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 1100, height: 800),
                                 configuration: configuration)
         self.webView = webView
         return webView
     }
+
+    /// The script that records the API calls a page makes, so an endpoint can
+    /// be found by watching the site rather than guessing at path names.
+    /// Document start, because the interesting calls happen during load.
+    private static let fetchLogger = WKUserScript(
+        source: #"""
+        window.__notchCalls = [];
+        (function () {
+            const fetchImpl = window.fetch;
+            window.fetch = function (...args) {
+                try {
+                    const url = args[0] && args[0].url ? args[0].url : args[0];
+                    window.__notchCalls.push(String(url));
+                } catch (e) {}
+                return fetchImpl.apply(this, args);
+            };
+            const openImpl = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function (method, url) {
+                try { window.__notchCalls.push(String(url)); } catch (e) {}
+                return openImpl.apply(this, arguments);
+            };
+        })();
+        """#,
+        injectionTime: .atDocumentStart,
+        forMainFrameOnly: false
+    )
 
     private func ensureLoaded() async throws {
         let webView = makeWebViewIfNeeded()
@@ -173,6 +178,11 @@ final class WebSessionProvider: NSObject, UsageProvider {
     /// part of a refresh.
     func recordCalls(on url: URL, settleFor seconds: Double = 8) async -> [String] {
         let webView = makeWebViewIfNeeded()
+        // The logger is installed for this pass only. Scripts added to a live
+        // content controller apply to subsequent loads — exactly what a
+        // discovery pass wants — and are stripped again so ordinary refreshes
+        // never carry the patch.
+        webView.configuration.userContentController.addUserScript(Self.fetchLogger)
         webView.load(URLRequest(url: url))
         try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
         isLoaded = false   // the page moved; the next refresh reloads its own
@@ -180,6 +190,7 @@ final class WebSessionProvider: NSObject, UsageProvider {
             "return JSON.stringify(window.__notchCalls || []);",
             arguments: [:], in: nil, contentWorld: .page
         )
+        webView.configuration.userContentController.removeAllUserScripts()
         guard let text = result as? String,
               let data = text.data(using: .utf8),
               let calls = try? JSONDecoder().decode([String].self, from: data)

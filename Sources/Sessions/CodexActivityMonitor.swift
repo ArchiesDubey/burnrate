@@ -14,6 +14,13 @@ import Foundation
 /// ring stops spinning `staleAfter` seconds after the last write rather than
 /// claiming activity it cannot see. If Codex grows a real status field this
 /// should be replaced by it.
+///
+/// **The tick is gated, because it runs every two seconds forever.** `read`
+/// opens two SQLite stores, and ~86,000 opens a day to learn "nothing
+/// changed" is pure waste. The stores' modification dates are stat'ed first —
+/// when neither moved and no session is live to age out, the answer cannot
+/// have changed since the last look. While a session *is* live the gate stays
+/// open, because staleness is decided by the clock, not the disk.
 @MainActor
 final class CodexActivityMonitor: ObservableObject, AgentActivityMonitor {
     @Published private(set) var sessions: [AgentSession] = []
@@ -24,18 +31,24 @@ final class CodexActivityMonitor: ObservableObject, AgentActivityMonitor {
     private let interval: TimeInterval
     /// How long after the last write a turn is still considered in flight.
     private let staleAfter: TimeInterval
+    /// Injectable so the gate's behaviour can be tested without any store.
+    private let read: (URL, URL, TimeInterval) -> [AgentSession]
+    private var lastStateModified: Date?
+    private var lastDesktopModified: Date?
     private var timer: Timer?
 
     init(
         stateStore: URL = CodexStore.stateURL,
         desktopStore: URL = CodexStore.desktopStoreURL,
         interval: TimeInterval = 2,
-        staleAfter: TimeInterval = 8
+        staleAfter: TimeInterval = 8,
+        read: @escaping (URL, URL, TimeInterval) -> [AgentSession] = CodexActivityMonitor.readDefault
     ) {
         self.stateStore = stateStore
         self.desktopStore = desktopStore
         self.interval = interval
         self.staleAfter = staleAfter
+        self.read = read
     }
 
     func start() {
@@ -52,11 +65,32 @@ final class CodexActivityMonitor: ObservableObject, AgentActivityMonitor {
         timer = nil
     }
 
-    private func rescan() {
-        let found = Self.read(stateStore: stateStore, desktopStore: desktopStore,
-                              staleAfter: staleAfter)
+    func rescan() {
+        let stateModified = Self.modified(stateStore)
+        let desktopModified = Self.modified(desktopStore)
+        if sessions.isEmpty,
+           stateModified == lastStateModified,
+           desktopModified == lastDesktopModified {
+            return
+        }
+        lastStateModified = stateModified
+        lastDesktopModified = desktopModified
+        let found = read(stateStore, desktopStore, staleAfter)
         guard found != sessions else { return }
         sessions = found
+    }
+
+    /// A file's modification date, or nil when there is no such file — one
+    /// stat, versus the open-plus-query `read` pays for the same answer.
+    static func modified(_ url: URL) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
+    }
+
+    /// Default-parameter shim: a static method with a defaulted argument
+    /// cannot be referenced as a plain function value.
+    private static func readDefault(_ stateStore: URL, _ desktopStore: URL,
+                                    _ staleAfter: TimeInterval) -> [AgentSession] {
+        read(stateStore: stateStore, desktopStore: desktopStore, staleAfter: staleAfter)
     }
 
     static func read(stateStore: URL, desktopStore: URL,

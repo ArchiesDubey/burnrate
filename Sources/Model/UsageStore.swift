@@ -34,6 +34,7 @@ final class UsageStore: ObservableObject {
             // remembered forever and rebuilt from the archive at the next
             // launch, ring and all.
             for id in disconnected { lastGood.removeValue(forKey: id) }
+            accountCache.removeAll()
             archive.save(lastGood)
             refreshNow()
         }
@@ -111,12 +112,29 @@ final class UsageStore: ObservableObject {
         }
     }
 
+    /// `account()` is not free — Cursor opens its SQLite store, Codex and
+    /// OpenCode read `auth.json` — and SwiftUI evaluates this list on every
+    /// settings render. Results are held until the next refresh cycle, sign
+    /// out, or connection change, each of which is also when the underlying
+    /// credential could have changed.
+    private var accountCache: [String: ProviderAccount] = [:]
+
     /// Enough to list the providers in settings without exposing them.
     var providerSummaries: [ProviderSummary] {
         providers.map { provider in
-            ProviderSummary(id: provider.id, name: provider.displayName,
+            let account: ProviderAccount?
+            if disconnected.contains(provider.id) {
+                account = nil
+            } else if let cached = accountCache[provider.id] {
+                account = cached
+            } else {
+                let fetched = provider.account()
+                accountCache[provider.id] = fetched
+                account = fetched
+            }
+            return ProviderSummary(id: provider.id, name: provider.displayName,
                             glyph: provider.glyph,
-                            account: disconnected.contains(provider.id) ? nil : provider.account(),
+                            account: account,
                             signIn: provider.signInRoute,
                             wasRefusedAccess: refusedAccess.contains(provider.id))
         }
@@ -190,15 +208,33 @@ final class UsageStore: ObservableObject {
         let versions = connectionVersions
         refreshing = Set(live.map(\.id))
         defer { refreshing = [] }
-        var next: [ProviderSnapshot] = []
-        for provider in live {
-            if let fresh = await snapshot(from: provider, version: versions[provider.id]) {
-                next.append(fresh)
+
+        // Fetched concurrently: each provider's endpoint is independent, and
+        // a serial loop made every ring behind the slowest one wait out its
+        // full timeout. All state changes still land on the main actor, so
+        // the parallelism changes latency, not ordering guarantees.
+        var byID: [String: ProviderSnapshot] = [:]
+        await withTaskGroup(of: (String, ProviderSnapshot?).self) { group in
+            for provider in live {
+                group.addTask {
+                    (provider.id, await self.snapshot(from: provider, version: versions[provider.id]))
+                }
+            }
+            for await (id, fresh) in group {
+                if let fresh { byID[id] = fresh }
             }
         }
-        // An earlier result can have been disconnected while a later provider
-        // was awaiting its response. Do not put that reading back on screen.
-        snapshots = next.filter { isCurrent($0.id, version: versions[$0.id]) }
+
+        // Registration order decides ring order on screen, so the group's
+        // completion order must not. The version filter still drops any
+        // provider disconnected while its fetch was in flight.
+        snapshots = live.compactMap { byID[$0.id] }
+            .filter { isCurrent($0.id, version: versions[$0.id]) }
+
+        // Once per cycle, not once per provider: the archive is written
+        // wholesale, so six providers used to mean six full encodes of it.
+        archive.save(lastGood)
+        accountCache.removeAll()
     }
 
     /// Refetch one provider, leaving the others alone.
@@ -216,9 +252,17 @@ final class UsageStore: ObservableObject {
         Task { [weak self] in
             guard let self else { return }
             defer { self.refreshing.remove(providerID) }
-            guard let fresh = await self.snapshot(from: provider, version: version) else { return }
-            if let index = self.snapshots.firstIndex(where: { $0.id == providerID }) {
-                self.snapshots[index] = fresh
+            let result = await self.snapshot(from: provider, version: version)
+            if let fresh = result {
+                if let index = self.snapshots.firstIndex(where: { $0.id == providerID }) {
+                    self.snapshots[index] = fresh
+                }
+            }
+            // Degraded results count too: a `needsAuth` drops remembered
+            // history, and that must reach the archive same as a success.
+            if result != nil {
+                self.archive.save(self.lastGood)
+                self.accountCache.removeAll()
             }
             self.lastAttempt = Date()
             // A beat of visible work even when the answer was instant: a spinner
@@ -248,6 +292,7 @@ final class UsageStore: ObservableObject {
         refusedAccess.remove(providerID)
         snapshots.removeAll { $0.id == providerID }
         lastGood.removeValue(forKey: providerID)
+        accountCache.removeValue(forKey: providerID)
         archive.forget(providerID)
 
         Task { await provider.signOut() }
@@ -283,6 +328,7 @@ final class UsageStore: ObservableObject {
     /// the prompt never returns — the button would appear to do nothing.
     func reauthorize(providerID: String) {
         providers.first { $0.id == providerID }?.forgetCachedCredential()
+        accountCache.removeValue(forKey: providerID)
         refresh(providerID: providerID)
     }
 
@@ -321,14 +367,15 @@ final class UsageStore: ObservableObject {
     }
 
     private func snapshot(from provider: UsageProvider, version: UUID?) async -> ProviderSnapshot? {
-        // A provider may have been switched off while waiting behind another
-        // provider in the serial refresh. Do not read its credential at all.
+        // The pre-flight check still matters: a provider disconnected while
+        // this refresh was starting must not have its credential read at all.
         guard isCurrent(provider.id, version: version) else { return nil }
         do {
             let fresh = try await provider.fetchSnapshot()
             guard isCurrent(provider.id, version: version) else { return nil }
             lastGood[provider.id] = (fresh, Date())
-            archive.save(lastGood)
+            // The archive write happens once per refresh cycle in `refresh()`,
+            // not per provider — the archive is saved wholesale.
             refusedAccess.remove(provider.id)
             Log.usage.debug("\(provider.id, privacy: .public): \(fresh.windows.count) window(s)")
             return fresh
@@ -360,10 +407,10 @@ final class UsageStore: ObservableObject {
         // signed out, or a plan that meters nothing. Re-showing an old reading
         // through one of those would present a number that is no longer true —
         // and, after an endpoint change, one that came from somewhere we no
-        // longer read. So the remembered reading is dropped, not dimmed.
+        // longer read. So the remembered reading is dropped, not dimmed. The
+        // archive follows at the end of the refresh cycle.
         if Self.supersedesHistory(status) {
             lastGood[provider.id] = nil
-            archive.save(lastGood)
             var empty = Self.placeholder(provider)
             empty.status = status
             return empty

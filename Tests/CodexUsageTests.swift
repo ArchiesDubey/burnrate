@@ -212,3 +212,72 @@ final class UsageBlockTests: XCTestCase {
     }
 }
 
+
+/// The monitor ticks every two seconds forever; `read` opens two SQLite
+/// stores per tick. The gate is what keeps that affordable — these pin down
+/// exactly when it opens and stays shut.
+@MainActor
+final class CodexActivityMonitorGateTests: XCTestCase {
+    private func makeStores() -> (dir: URL, state: URL, desktop: URL) {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("codemon-gate-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let state = dir.appendingPathComponent("state.vscdb")
+        let desktop = dir.appendingPathComponent("desktop.sqlite")
+        try? Data("x".utf8).write(to: state)
+        try? Data("x".utf8).write(to: desktop)
+        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
+        return (dir, state, desktop)
+    }
+
+    private func session() -> AgentSession {
+        AgentSession(id: "codex.x", name: "Codex", detail: "Working",
+                     state: .busy, waitingFor: nil, since: Date())
+    }
+
+    func testUnchangedStoresAreNotRereadWhileNothingIsLive() {
+        let (_, state, desktop) = makeStores()
+        var reads = 0
+        let monitor = CodexActivityMonitor(
+            stateStore: state, desktopStore: desktop,
+            read: { _, _, _ in reads += 1; return [] })
+
+        monitor.rescan()   // mtimes not yet known → one real read
+        XCTAssertEqual(reads, 1)
+        monitor.rescan()   // nothing changed, nothing live → stat only
+        monitor.rescan()
+        XCTAssertEqual(reads, 1)
+
+        try? Data("y".utf8).write(to: state)   // the store moved → read again
+        monitor.rescan()
+        XCTAssertEqual(reads, 2)
+    }
+
+    func testALiveSessionKeepsTheGateOpenUntilItAgesOut() {
+        let (_, state, desktop) = makeStores()
+        var reads = 0
+        var live = true
+        let monitor = CodexActivityMonitor(
+            stateStore: state, desktopStore: desktop,
+            read: { [self] _, _, _ in
+                reads += 1
+                return live ? [self.session()] : []
+            })
+
+        monitor.rescan()   // reports the live session
+        XCTAssertEqual(reads, 1)
+        XCTAssertEqual(monitor.sessions.count, 1)
+
+        monitor.rescan()   // unchanged stores, but a session must age out —
+        XCTAssertEqual(reads, 2)   // staleness is decided by the clock, so
+                                   // the read has to keep happening
+
+        live = false
+        monitor.rescan()   // the session aged out
+        XCTAssertEqual(reads, 3)
+        XCTAssertTrue(monitor.sessions.isEmpty)
+
+        monitor.rescan()   // empty + unchanged → the gate closes again
+        XCTAssertEqual(reads, 3)
+    }
+}

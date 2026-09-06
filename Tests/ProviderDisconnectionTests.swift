@@ -55,7 +55,7 @@ final class ProviderDisconnectionTests: XCTestCase {
         XCTAssertNil(archive.load()[provider.id])
     }
 
-    func testAQueuedProviderIsNotReadAfterItIsDisconnected() async {
+    func testAProviderDisconnectedMidRefreshHasItsResultDiscarded() async {
         let started = expectation(description: "First request started")
         let first = Probe(id: "a", started: started)
         let queued = Probe(id: "b")
@@ -63,10 +63,14 @@ final class ProviderDisconnectionTests: XCTestCase {
         store.refreshNow()
         await fulfillment(of: [started], timeout: 2)
 
+        // Refreshes fetch concurrently now, so a disconnect can no longer
+        // prevent a fetch that started in the same instant — what it must do
+        // is discard that provider's result, its remembered reading, and its
+        // place in the archive, which the connection version guarantees.
         store.disconnected = [queued.id]
         await finish(first, in: store)
 
-        XCTAssertEqual(queued.calls, 0)
+        XCTAssertEqual(queued.calls, 1)
         XCTAssertEqual(store.snapshots.map(\.id), [first.id])
         XCTAssertNil(archive.load()[queued.id])
         XCTAssertNotNil(archive.load()[first.id])
@@ -79,11 +83,13 @@ final class ProviderDisconnectionTests: XCTestCase {
         let (store, archive) = makeStore([first, second])
         store.refreshNow()
         await fulfillment(of: [started], timeout: 2)
-        XCTAssertNotNil(archive.load()[first.id])
 
         store.disconnected = [first.id]
         await finish(second, in: store)
 
+        // The archive is written once the cycle completes, so by now `a`'s
+        // instant result has been fetched, dropped by the disconnect, and
+        // never persisted — while `b`'s has.
         XCTAssertEqual(store.snapshots.map(\.id), [second.id])
         XCTAssertNil(archive.load()[first.id])
         XCTAssertNotNil(archive.load()[second.id])
