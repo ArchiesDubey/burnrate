@@ -54,7 +54,12 @@ targets:
         # and no obvious way to reach settings or quit.
         CFBundleName: Burnrate
         CFBundleDisplayName: Burnrate
-        LSMinimumSystemVersion: "26.0"
+        # Follows the deployment target rather than a literal, so a
+        # per-invocation `make test DEPLOYMENT_TARGET=15.0` on an older host
+        # passes Launch Services too — a hardcoded floor here is what refused
+        # to launch the test host on macOS 15 machines. The shipped floor is
+        # set once by `deploymentTarget` above.
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         # Sources/Info.plist is *generated* from this block, so editing that
         # file directly is undone by the next `make gen`. Pointing both at the
         # build settings keeps one place to bump.
