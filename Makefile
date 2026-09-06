@@ -17,6 +17,16 @@ DEST    := platform=macOS,arch=arm64
 # the Developer ID identity for notarization + Sparkle.
 DEV_SIGN := CODE_SIGN_IDENTITY="-" DEVELOPMENT_TEAM="" CODE_SIGN_STYLE=Automatic
 
+# Override the deployment target for this invocation only, for developing on a
+# host older than the shipped floor — e.g. on a Mac still running macOS 15:
+#
+#     make test DEPLOYMENT_TARGET=15.0
+#
+# This changes what runs on YOUR machine, not what ships: the product's floor
+# stays in project.yml (deploymentTarget) until deliberately lowered there.
+DEPLOYMENT_TARGET ?=
+DEPLOY_ARGS = $(if $(DEPLOYMENT_TARGET),MACOSX_DEPLOYMENT_TARGET=$(DEPLOYMENT_TARGET))
+
 .PHONY: gen build test run clean
 
 gen:
@@ -24,11 +34,11 @@ gen:
 
 build: gen
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DEST)' \
-		-configuration Debug $(DEV_SIGN) build
+		-configuration Debug $(DEV_SIGN) $(DEPLOY_ARGS) build
 
 test: gen
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DEST)' \
-		-configuration Debug $(DEV_SIGN) test
+		-configuration Debug $(DEV_SIGN) $(DEPLOY_ARGS) test
 
 run: build
 	@APP=$$(xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DEST)' \
