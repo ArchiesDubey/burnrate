@@ -151,10 +151,12 @@ final class WebSessionProvider: NSObject, UsageProvider {
             throw UsageProviderError.badResponse(status: status)
         }
 
-        // Recorded verbatim so a parser can be written against the real thing.
-        Log.usage.notice("\(self.site.id, privacy: .public) usage -> \(body.prefix(1200), privacy: .public)")
+        // Recorded so a parser can be written against the real thing — at
+        // debug level: usage bodies end up in sysdiagnose packages, which
+        // leave the machine with every support upload.
+        Log.usage.debug("\(self.site.id, privacy: .public) usage -> \(body.prefix(1200), privacy: .public)")
         if let probes = envelope["probes"] as? String {
-            Log.usage.notice("\(self.site.id, privacy: .public) probes -> \(probes.prefix(2600), privacy: .public)")
+            Log.usage.debug("\(self.site.id, privacy: .public) probes -> \(probes.prefix(2600), privacy: .public)")
         }
 
         return ProviderSnapshot(
@@ -195,8 +197,8 @@ final class WebSessionProvider: NSObject, UsageProvider {
 
     /// Shows the WebView so the user can sign in — and, if a challenge appears,
     /// answer it themselves. The app never answers one on their behalf.
-    /// The one real logout in the app: this session belongs to Codenotch, so
-    /// Codenotch can end it.
+    /// The one real logout in the app: this session belongs to Burnrate, so
+    /// Burnrate can end it.
     ///
     /// Scoped to the site's own host rather than emptying the store — the
     /// default store is shared, so clearing all of it would sign the user out of

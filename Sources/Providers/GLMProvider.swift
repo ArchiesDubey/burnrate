@@ -22,10 +22,21 @@ actor GLMProvider: UsageProvider {
 
     /// The plan level the last successful answer named, for the settings row.
     /// Kept here rather than re-derived: it is a fact about the account, not
-    /// about this fetch. `nonisolated(unsafe)` because `account()` reads it
-    /// off the actor; the worst a race can do is show the previous level for
-    /// one row-draw.
-    nonisolated(unsafe) private var lastKnownPlan: String?
+    /// about this fetch. `account()` is nonisolated and runs on the main actor
+    /// while fetches update this from the provider actor, so it lives in a
+    /// lock-guarded box rather than a bare `String` — a concurrent read/write
+    /// of a String is undefined behaviour, not merely a stale value.
+    private let lastKnownPlan = PlanBox()
+
+    /// One optional string, safe to touch from any thread. Nothing about the
+    /// plan is load-bearing — the box exists only so the crossing is defined.
+    private final class PlanBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value: String?
+
+        func get() -> String? { lock.withLock { value } }
+        func set(_ new: String?) { lock.withLock { value = new } }
+    }
 
     init(session: URLSession = .shared, archive: UsageArchive = UsageArchive()) {
         self.session = session
@@ -47,7 +58,7 @@ actor GLMProvider: UsageProvider {
         guard let credentials = GLMCredentials.load() else { return nil }
         return ProviderAccount(
             label: nil,   // none of the borrowed keys carries an address
-            plan: lastKnownPlan,
+            plan: lastKnownPlan.get(),
             source: credentials.source,
             manageURL: credentials.baseURL.host == "open.bigmodel.cn"
                 ? URL(string: "https://open.bigmodel.cn/usage")
@@ -76,7 +87,7 @@ actor GLMProvider: UsageProvider {
             consecutiveRateLimits = 0
             retryNoEarlierThan = nil
             archive.saveBackoffUntil(nil, providerID: id)
-            lastKnownPlan = payload.level
+            lastKnownPlan.set(payload.level)
 
             return ProviderSnapshot(
                 id: id,
