@@ -22,11 +22,13 @@ two never disagree.
 | **Grok** | official | grok.com's own Usage card RPC (`GetGrokCreditsConfig`), called from inside a signed-in WebView — the weekly SuperGrok pool. Sign in once via Right-click → Sign in to Grok… |
 | **OpenCode** | official | The Go plan's rolling/weekly/monthly windows from `opencode.ai/zen/go/v1/usage`, with the `opencode-go` key OpenCode itself stores on sign-in. |
 
-Codenotch never signs in anywhere. Every reading is borrowed from a credential
-or session a tool on your Mac already holds — install and sign in to any of
-them, and its ring appears. Switching a provider off in Settings stops its
-credential being read at all and forgets the readings taken from it; it does
-not sign you out of the tool that owns the account, and the row says so.
+Almost every reading is borrowed from a credential or session a tool on your
+Mac already holds — install and sign in to any of them, and its ring appears.
+The exception is Grok, which has no local tool to borrow from: its ring is read
+from inside a WebView you sign into yourself, and signing out of it in Settings
+clears that session. Switching a provider off stops its credential being read
+at all and forgets the readings taken from it; it does not sign you out of the
+tool that owns the account, and the row says so.
 
 It also answers **"is it still working?"** — a thin arc spins inside a
 provider's ring while a session is busy, and becomes a pulsing amber ring when
