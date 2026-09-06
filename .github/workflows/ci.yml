@@ -39,7 +39,7 @@ jobs:
       # on-screen windows at rest, so macOS automatic termination used to quit
       # it seconds after an `open` launch (fixed by NSSupportsAutomaticTermination
       # in project.yml). This soaks a real launch the way a user gets one.
-      - name: Smoke: launch via Launch Services and survive
+      - name: "Smoke: launch via Launch Services and survive"
         run: |
           APP=$(xcodebuild -project Burnrate.xcodeproj -scheme Burnrate \
             -destination 'platform=macOS,arch=arm64' -configuration Debug \
