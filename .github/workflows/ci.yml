@@ -11,11 +11,15 @@ concurrency:
 
 jobs:
   test:
-    # First hosted image whose default Xcode carries the macOS 26 SDK the app
-    # targets (LSMinimumSystemVersion 26.0). If this label ever queues forever,
-    # the image doesn't exist yet on this runner fleet — fall back to
-    # `macos-latest` and select Xcode 26 explicitly with `xcode-select`.
-    runs-on: macos-26
+    # The supported floor is macOS 15 (project.yml deploymentTarget), so CI
+    # builds and tests on both ends of the supported range: the 26 image
+    # (newest SDK) and the 15 image (the oldest OS a customer may run — and
+    # the one most fleet machines run).
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-26, macos-15]
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
 
     steps:
@@ -55,7 +59,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs
+          name: build-logs-${{ matrix.runner }}
           path: |
             build/
             ~/Library/Developer/Xcode/DerivedData/Burnrate-*/Logs/Build/*.xcactivitylog

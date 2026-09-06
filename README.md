@@ -68,15 +68,22 @@ design.
 
 ## Building
 
+Requires Xcode (with the macOS SDK) and [xcodegen](https://github.com/yonaskolb/XcodeGen):
+
 ```sh
 brew install xcodegen   # once
-make run                # generate, build, launch a Debug build
+
+make install            # build and install /Applications/Burnrate.app, launch it
+make run                # dev loop: build and run straight from DerivedData
 make test               # unit tests
 ```
 
-No signing identity is required for either — Debug builds ad-hoc sign. Cutting
-a distributable release (`make release`) needs a Developer ID certificate and a
-notarytool profile; CI can do it end-to-end once the secrets listed in
+After `make install` it's an ordinary Mac app — Spotlight, Dock, and the
+Settings → Launch at Login toggle all work; re-run `make install` after
+pulling changes to update the installed copy. Debug builds ad-hoc sign, so no
+certificate is needed for any of the above. Cutting a distributable release
+(`make release`) needs a Developer ID certificate and a notarytool profile;
+CI can do it end-to-end once the secrets listed in
 [`.github/workflows/release.yml`](.github/workflows/release.yml) are configured.
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 

@@ -2,7 +2,11 @@ name: Burnrate
 options:
   bundleIdPrefix: com.burnrate
   deploymentTarget:
-    macOS: "26.0"
+    # 15.0, not 26: the full suite (552 tests) and a Launch Services smoke
+    # run pass on a 15 host, no macOS-26-only APIs are used, and a 15 floor
+    # is where the customers are — enterprise fleets and this Mac included.
+    # The full-suite evidence on 15 lives in CI's macos-15 matrix leg.
+    macOS: "15.0"
   createIntermediateGroups: true
 
 settings:

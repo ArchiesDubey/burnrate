@@ -27,7 +27,7 @@ DEV_SIGN := CODE_SIGN_IDENTITY="-" DEVELOPMENT_TEAM="" CODE_SIGN_STYLE=Automatic
 DEPLOYMENT_TARGET ?=
 DEPLOY_ARGS = $(if $(DEPLOYMENT_TARGET),MACOSX_DEPLOYMENT_TARGET=$(DEPLOYMENT_TARGET))
 
-.PHONY: gen build test run clean
+.PHONY: gen build test run install clean
 
 gen:
 	xcodegen generate
@@ -46,6 +46,25 @@ run: build
 		| awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $$2; exit}')/Burnrate.app; \
 	pkill -x Burnrate || true; \
 	open "$$APP"
+
+# The normal-app path: build, put it in /Applications, launch it. After the
+# first `make install`, the app is an ordinary Mac app — Spotlight, Dock,
+# Launch at Login (Settings toggle) all work, and it survives reboots.
+# Re-run after pulling changes to update the installed copy.
+#
+# Ad-hoc signing means every install is a new identity to macOS, so the
+# keychain asks once per install (not per launch) for borrowed credentials;
+# that stops when a Developer ID signs real releases.
+install: build
+	@APP=$$(xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DEST)' \
+		-configuration Debug -showBuildSettings 2>/dev/null \
+		| awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $$2; exit}')/Burnrate.app; \
+	pkill -x Burnrate || true; \
+	rm -rf /Applications/Burnrate.app; \
+	cp -R "$$APP" /Applications/ && \
+	echo "Installed /Applications/Burnrate.app" && \
+	xattr -dr com.apple.quarantine /Applications/Burnrate.app || true; \
+	open /Applications/Burnrate.app
 
 clean:
 	rm -rf build DerivedData $(PROJECT)
