@@ -54,6 +54,15 @@ targets:
         # and no obvious way to reach settings or quit.
         CFBundleName: Burnrate
         CFBundleDisplayName: Burnrate
+        # The notch panel is borderless and ordered out at rest, so at any
+        # quiet moment the app has no on-screen windows — which is exactly the
+        # condition automatic termination quits an app for. Without this key,
+        # a Launch Services launch dies a few seconds in (a direct exec from a
+        # terminal survives, which is why the bug hid from CLI testing).
+        NSSupportsAutomaticTermination: false
+        # Timers drive the refresh cadence; an app napped between ticks shows
+        # stale rings for no visible reason.
+        NSSupportsAppNap: false
         # Follows the deployment target rather than a literal, so a
         # per-invocation `make test DEPLOYMENT_TARGET=15.0` on an older host
         # passes Launch Services too — a hardcoded floor here is what refused

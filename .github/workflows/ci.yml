@@ -35,6 +35,22 @@ jobs:
       - name: Build and test
         run: make test
 
+      # Unit tests cannot catch launch-lifecycle deaths: the app has no
+      # on-screen windows at rest, so macOS automatic termination used to quit
+      # it seconds after an `open` launch (fixed by NSSupportsAutomaticTermination
+      # in project.yml). This soaks a real launch the way a user gets one.
+      - name: Smoke: launch via Launch Services and survive
+        run: |
+          APP=$(xcodebuild -project Burnrate.xcodeproj -scheme Burnrate \
+            -destination 'platform=macOS,arch=arm64' -configuration Debug \
+            -showBuildSettings 2>/dev/null \
+            | awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $2; exit}')/Burnrate.app
+          open "$APP"
+          sleep 20
+          pgrep -x Burnrate >/dev/null || (echo "app died within 20s of launch" && exit 1)
+          echo "survived 20s"
+          pkill -x Burnrate
+
       - name: Upload build artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
