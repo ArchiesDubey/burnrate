@@ -21,7 +21,7 @@ final class StatusItemController {
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = Self.icon()
-        item.button?.toolTip = "Codenotch"
+        item.button?.toolTip = "Burnrate"
 
         let menu = NSMenu()
         menu.addItem(
@@ -29,7 +29,7 @@ final class StatusItemController {
         ).target = self
         menu.addItem(.separator())
         menu.addItem(
-            withTitle: "Quit Codenotch", action: #selector(quit), keyEquivalent: "q"
+            withTitle: "Quit Burnrate", action: #selector(quit), keyEquivalent: "q"
         ).target = self
         item.menu = menu
 

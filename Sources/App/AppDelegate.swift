@@ -40,9 +40,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let controller = NotchWindowController()
 
-        // `CODENOTCH_DEMO=1` puts the design frame's three providers on screen
+        // `BURNRATE_DEMO=1` puts the design frame's three providers on screen
         // with its numbers, for screenshots and for eyeballing the layout.
-        if ProcessInfo.processInfo.environment["CODENOTCH_DEMO"] == "1" {
+        if ProcessInfo.processInfo.environment["BURNRATE_DEMO"] == "1" {
             controller.model.snapshots = Fixtures.snapshots()
         } else {
             // Grok reads SuperGrok's weekly pool through a signed-in WebView
@@ -168,10 +168,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 .sink { [weak controller] ids in controller?.model.refreshing = ids }
                 .store(in: &cancellables)
 
-            // CODENOTCH_DISCOVER=<url> loads that page in the signed-in WebView
+            // BURNRATE_DISCOVER=<url> loads that page in the signed-in WebView
             // and logs the API calls it makes — for finding an undocumented
             // endpoint by watching the site rather than guessing at path names.
-            if let target = ProcessInfo.processInfo.environment["CODENOTCH_DISCOVER"],
+            if let target = ProcessInfo.processInfo.environment["BURNRATE_DISCOVER"],
                let url = URL(string: target),
                let provider = webProviders.first(where: { url.host?.contains($0.id) == true })
                    ?? webProviders.first {

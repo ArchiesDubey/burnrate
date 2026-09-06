@@ -4,7 +4,7 @@ import SQLite3
 /// The session Cursor's editor keeps for itself, in the SQLite global-state
 /// store it inherits from VS Code.
 ///
-/// Codenotch only ever reads it, the same bargain as Claude Code's keychain
+/// Burnrate only ever reads it, the same bargain as Claude Code's keychain
 /// token: the editor mints and refreshes it, we borrow the current value. The
 /// database is opened read-only and `immutable`, so a running editor is never
 /// blocked or corrupted by us looking.

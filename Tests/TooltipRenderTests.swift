@@ -1,6 +1,6 @@
 import XCTest
 import SwiftUI
-@testable import Codenotch
+@testable import Burnrate
 
 /// Renders the tooltip with a session in every state.
 ///
@@ -23,9 +23,9 @@ final class TooltipRenderTests: XCTestCase {
             windows: [LimitWindow(id: "session", label: "Session", usedFraction: 0.47)]
         )
         let activity = ActivitySummary(sessions: [
-            session("codenotch-6f", .idle, minutes: 0),
-            session("hivinz-web-2f", .busy, minutes: 1),
-            session("codenotch-18", .waiting, minutes: 3)
+            session("burnrate-6f", .idle, minutes: 0),
+            session("burnrate-web-2f", .busy, minutes: 1),
+            session("burnrate-18", .waiting, minutes: 3)
         ])
 
         let view = TooltipCard(snapshot: snapshot, activity: activity, now: Date())

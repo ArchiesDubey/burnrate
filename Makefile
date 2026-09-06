@@ -8,8 +8,8 @@ export DEVELOPER_DIR := /Applications/Xcode.app/Contents/Developer
 endif
 endif
 
-PROJECT := Codenotch.xcodeproj
-SCHEME  := Codenotch
+PROJECT := Burnrate.xcodeproj
+SCHEME  := Burnrate
 DEST    := platform=macOS,arch=arm64
 
 # Debug builds are ad-hoc signed so anyone can build without the maintainer's
@@ -33,8 +33,8 @@ test: gen
 run: build
 	@APP=$$(xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DEST)' \
 		-configuration Debug -showBuildSettings 2>/dev/null \
-		| awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $$2; exit}')/Codenotch.app; \
-	pkill -x Codenotch || true; \
+		| awk -F' = ' '/ BUILT_PRODUCTS_DIR/ {print $$2; exit}')/Burnrate.app; \
+	pkill -x Burnrate || true; \
 	open "$$APP"
 
 clean:
@@ -46,19 +46,23 @@ clean:
 #
 # One-time setup, which you have to run yourself because it takes a password:
 #
-#   xcrun notarytool store-credentials UsageNotch \
-#       --apple-id <your-apple-id> --team-id 6WFPL8B9FB --password <app-specific-password>
+#   xcrun notarytool store-credentials $(NOTARY_PROFILE) \
+#       --apple-id <your-apple-id> --team-id $(SIGNING_TEAM) --password <app-specific-password>
 #
 # The app-specific password comes from appleid.apple.com → Sign-In and Security
 # → App-Specific Passwords. Not your Apple ID password.
+#
+# Both variables are overridable so CI can inject them from secrets:
+#   make notarize NOTARY_PROFILE=ci-notary SIGNING_TEAM=XXXXXXXXXX
 
 RELEASE_DIR := build/release
-APP_NAME    := Codenotch
-# The label of the stored notarytool credential in the login keychain, not
-# anything to do with the app's name — it was created before the rename and
-# renaming the variable is what broke `make release` after it. Recreating it
-# needs an app-specific password, so the label simply stays as it is.
-NOTARY_PROFILE := UsageNotch
+APP_NAME    := Burnrate
+# The label of the stored notarytool credential in the login keychain.
+NOTARY_PROFILE ?= burnrate-notary
+# The Apple Developer team whose Developer ID certificate signs the release.
+# Empty until the org account exists; `make archive` will say so if asked to
+# export without it.
+SIGNING_TEAM ?=
 DMG := $(RELEASE_DIR)/$(APP_NAME).dmg
 
 .PHONY: archive dmg notarize release verify-release
@@ -67,10 +71,11 @@ DMG := $(RELEASE_DIR)/$(APP_NAME).dmg
 # archive` + `-exportArchive` rather than a plain build: it re-signs the bundle
 # as a distributable, which a Debug build is not.
 archive: gen
+	@test -n "$(SIGNING_TEAM)" || (echo "SIGNING_TEAM is empty — set it to your Apple Developer team ID, e.g. make archive SIGNING_TEAM=XXXXXXXXXX" && exit 1)
 	rm -rf $(RELEASE_DIR)
 	mkdir -p $(RELEASE_DIR)
 	@# Spotlight indexes build output as installed applications, so every
-	@# release leaves extra "Codenotch" entries in app search next to the
+	@# release leaves extra "Burnrate" entries in app search next to the
 	@# real one in /Applications. This stops the whole tree being indexed.
 	@touch build/.metadata_never_index
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DEST)' \
@@ -80,7 +85,7 @@ archive: gen
 		'<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
 		'<plist version="1.0"><dict>' \
 		'<key>method</key><string>developer-id</string>' \
-		'<key>teamID</key><string>6WFPL8B9FB</string>' \
+		'<key>teamID</key><string>$(SIGNING_TEAM)</string>' \
 		'<key>signingStyle</key><string>manual</string>' \
 		'<key>signingCertificate</key><string>Developer ID Application</string>' \
 		'</dict></plist>' > $(RELEASE_DIR)/ExportOptions.plist
@@ -101,7 +106,7 @@ dmg: archive
 		-ov -format UDZO $(DMG)
 	codesign --force --sign "Developer ID Application" --timestamp $(DMG)
 	@# The app is inside the dmg now. Leaving the loose copies around is how
-	@# three spare "Codenotch" entries end up in Spotlight; everything
+	@# three spare "Burnrate" entries end up in Spotlight; everything
 	@# downstream (notarize, verify, appcast) works from the dmg alone.
 	rm -rf $(RELEASE_DIR)/stage $(RELEASE_DIR)/$(APP_NAME).app
 
@@ -112,22 +117,19 @@ notarize: dmg
 	xcrun stapler staple $(DMG)
 
 # Sparkle ships its tools inside the resolved package artifacts.
-SPARKLE_BIN = $(shell dirname $$(find $$HOME/Library/Developer/Xcode/DerivedData/Codenotch-*/SourcePackages/artifacts/sparkle -name generate_appcast 2>/dev/null | head -1))
+SPARKLE_BIN = $(shell dirname $$(find $$HOME/Library/Developer/Xcode/DerivedData/Burnrate-*/SourcePackages/artifacts/sparkle -name generate_appcast 2>/dev/null | head -1))
 
 # The feed customers' copies poll. Signs each update with the EdDSA private key
 # in the login keychain — Sparkle installs nothing that key did not sign, so a
 # compromised host cannot push code.
 #
-# Writes into docs/, which GitHub Pages serves. The dmg goes there too, so the
-# URL the appcast advertises is the one the file actually sits at — a mismatch
-# is the usual reason an update downloads and then fails to verify.
-# NOT docs/ — that holds the design frames and specs, and GitHub Pages serves
-# whatever it is pointed at. Publishing from there would put the whole design
-# history on the public web alongside the download.
-PAGES_DIR := site
-# Where the dmg actually sits. The enclosure URL the appcast advertises has to
-# match it exactly, or an update downloads and then fails to verify.
-DOWNLOAD_PREFIX := https://hivinz.com/
+# Writes into dist/ — point whatever hosts your downloads at it. The enclosure
+# URL the appcast advertises has to match where the file actually sits, or an
+# update downloads and then fails to verify.
+PAGES_DIR := dist
+# TODO(owner): the base URL the dmg will be downloadable from once a site
+# exists. Only `make appcast` uses it, so an empty placeholder breaks nothing.
+DOWNLOAD_PREFIX ?= https://updates.burnrate.invalid/
 
 appcast: $(DMG)
 	@test -n "$(SPARKLE_BIN)" || (echo "Sparkle tools not found — run make build first" && exit 1)

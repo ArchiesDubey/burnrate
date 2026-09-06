@@ -1,5 +1,5 @@
 import XCTest
-@testable import Codenotch
+@testable import Burnrate
 
 /// grok.com's Usage card is fed by a gRPC-web protobuf RPC with no published
 /// schema, so every layout fact is pinned here — ported from the fixtures

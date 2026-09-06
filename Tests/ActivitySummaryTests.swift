@@ -1,6 +1,6 @@
 import SQLite3
 import XCTest
-@testable import Codenotch
+@testable import Burnrate
 
 final class ActivitySummaryTests: XCTestCase {
     private func session(_ state: AgentSession.State, name: String = "s") -> AgentSession {

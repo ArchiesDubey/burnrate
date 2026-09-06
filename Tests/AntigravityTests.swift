@@ -1,6 +1,6 @@
 import XCTest
 import Sparkle
-@testable import Codenotch
+@testable import Burnrate
 
 /// Fixtures are the real thing: the keychain payload's shape and the actual
 /// `loadCodeAssist` response from a signed-in install.
@@ -355,8 +355,8 @@ final class AntigravityBridgeTests: XCTestCase {
 
     func testItParsesPortsFromLSOF() {
         let output = """
-        language_server 29283 vinz 12u IPv4 0x1 0t0 TCP 127.0.0.1:63881 (LISTEN)
-        language_server 29283 vinz 13u IPv4 0x2 0t0 TCP 127.0.0.1:63882 (LISTEN)
+        language_server 29283 example 12u IPv4 0x1 0t0 TCP 127.0.0.1:63881 (LISTEN)
+        language_server 29283 example 13u IPv4 0x2 0t0 TCP 127.0.0.1:63882 (LISTEN)
         """
         XCTAssertEqual(AntigravityBridge.parsePorts(fromLSOF: output), [63881, 63882])
     }
@@ -680,7 +680,7 @@ final class AuthorCreditTests: XCTestCase {
     /// Pinned because a wrong handle in a credit is worse than none, and it is
     /// the kind of string nobody re-reads once it looks right.
     func testTheCreditPointsAtTheRightAccount() {
-        XCTAssertEqual(SettingsView.authorURL.absoluteString, "https://x.com/hivinz_")
+        XCTAssertEqual(SettingsView.authorURL.absoluteString, "https://github.com/ArchiesDubey")
         XCTAssertEqual(SettingsView.authorURL.scheme, "https")
     }
 }

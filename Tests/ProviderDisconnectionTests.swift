@@ -1,6 +1,6 @@
 import Combine
 import XCTest
-@testable import Codenotch
+@testable import Burnrate
 
 @MainActor
 final class ProviderDisconnectionTests: XCTestCase {

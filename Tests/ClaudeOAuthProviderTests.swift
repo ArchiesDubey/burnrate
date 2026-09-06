@@ -1,5 +1,5 @@
 import XCTest
-@testable import Codenotch
+@testable import Burnrate
 
 /// The token path of `ClaudeOAuthProvider`.
 ///

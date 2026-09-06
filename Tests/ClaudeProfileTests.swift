@@ -1,5 +1,5 @@
 import XCTest
-@testable import Codenotch
+@testable import Burnrate
 
 /// A second Claude Code login kept under `~/.claude-<slug>` is its own account,
 /// with its own token, its own limits and its own sessions. Reading only
@@ -25,22 +25,22 @@ final class ClaudeProfileTests: XCTestCase {
     /// The default keeps the id it has always had, so archived readings and
     /// connection choices survive the update.
     func testTheDefaultProfileIsUnchanged() {
-        let profile = ClaudeProfile.default(home: URL(fileURLWithPath: "/Users/vinz"))
+        let profile = ClaudeProfile.default(home: URL(fileURLWithPath: "/Users/example"))
         XCTAssertNil(profile.slug)
         XCTAssertEqual(profile.id, "claude")
         XCTAssertEqual(profile.displayName, "Claude")
         XCTAssertEqual(profile.keychainService, "Claude Code-credentials")
-        XCTAssertEqual(profile.sessionsDirectory.path, "/Users/vinz/.claude/sessions")
+        XCTAssertEqual(profile.sessionsDirectory.path, "/Users/example/.claude/sessions")
         XCTAssertEqual(profile.sourceName, "Claude Code")
         XCTAssertEqual(profile.signInCommand, "claude")
     }
 
     func testAProfileIsNamedAfterItsSlug() {
         let profile = ClaudeProfile(slug: "work",
-                                    configDirectory: URL(fileURLWithPath: "/Users/vinz/.claude-work"))
+                                    configDirectory: URL(fileURLWithPath: "/Users/example/.claude-work"))
         XCTAssertEqual(profile.id, "claude-work")
         XCTAssertEqual(profile.displayName, "Claude (work)")
-        XCTAssertEqual(profile.sessionsDirectory.path, "/Users/vinz/.claude-work/sessions")
+        XCTAssertEqual(profile.sessionsDirectory.path, "/Users/example/.claude-work/sessions")
     }
 
     /// Claude Code files a non-default profile's token under the service name
@@ -49,7 +49,7 @@ final class ClaudeProfileTests: XCTestCase {
     /// signed in.
     func testTheKeychainServiceCarriesClaudeCodesHashOfThePath() {
         let profile = ClaudeProfile(slug: "work",
-                                    configDirectory: URL(fileURLWithPath: "/Users/vinz/.claude-work"))
+                                    configDirectory: URL(fileURLWithPath: "/Users/example/.claude-work"))
         // `shasum -a 256` of the path, no trailing slash, no newline.
         XCTAssertEqual(profile.keychainService, "Claude Code-credentials-19914660")
     }
@@ -58,7 +58,7 @@ final class ClaudeProfileTests: XCTestCase {
     /// a trailing slash.
     func testATrailingSlashDoesNotChangeTheHash() {
         let slashed = ClaudeProfile(slug: "work",
-                                    configDirectory: URL(fileURLWithPath: "/Users/vinz/.claude-work/"))
+                                    configDirectory: URL(fileURLWithPath: "/Users/example/.claude-work/"))
         XCTAssertEqual(slashed.keychainService, "Claude Code-credentials-19914660")
     }
 
@@ -185,7 +185,7 @@ final class ClaudeProfileTests: XCTestCase {
         let name = "ClaudeProfileTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!
         defaults.removePersistentDomain(forName: name)
-        let home = URL(fileURLWithPath: "/Users/vinz")
+        let home = URL(fileURLWithPath: "/Users/example")
         let store = UsageStore(
             providers: [
                 ClaudeOAuthProvider(profile: .default(home: home), archive: UsageArchive(defaults: defaults)),

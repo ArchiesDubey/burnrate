@@ -38,7 +38,7 @@ struct SettingsView: View {
                 }
                 // Beside the switches it explains, not stranded at the end of
                 // the page.
-                Text("Codenotch never signs in — each reading is borrowed from the "
+                Text("Burnrate never signs in — each reading is borrowed from the "
                      + "tool that already holds the account. Signing out here stops "
                      + "the credential being read and forgets the numbers, but leaves "
                      + "you signed in to that tool. macOS asks once per tool the "
@@ -49,9 +49,9 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            // One section, because they are one question: what Codenotch
+            // One section, because they are one question: what Burnrate
             // looks like and where it turns up. Split across three headers it
-            // read as three unrelated settings, and "Where Codenotch appears"
+            // read as three unrelated settings, and "Where Burnrate appears"
             // was a header long enough to look like a warning.
             Section("Appearance") {
                 Picker("Show", selection: $preferences.notchVisibility) {
@@ -87,11 +87,11 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            // Startup and updates together: both are about what Codenotch does
+            // Startup and updates together: both are about what Burnrate does
             // without being asked, and one switch under its own header looked
             // like an oversight rather than a section.
             Section("General") {
-                Toggle("Open Codenotch at login", isOn: $preferences.launchAtLogin)
+                Toggle("Open Burnrate at login", isOn: $preferences.launchAtLogin)
                 if let problem = preferences.launchAtLoginProblem {
                     Text(problem)
                         .font(.caption)
@@ -112,7 +112,7 @@ struct SettingsView: View {
                     // background updater and something that looks like it is
                     // hiding.
                     Text("Version \(updater.currentVersion). Updates install in the "
-                         + "background and apply next time Codenotch starts.")
+                         + "background and apply next time Burnrate starts.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -154,7 +154,7 @@ struct SettingsView: View {
                 Text("App designed and developed by")
                 // Only the handle is the link, so the line reads as a sentence
                 // rather than as a button with a sentence attached.
-                Link("@hivinz_", destination: SettingsView.authorURL)
+                Link("@ArchiesDubey", destination: SettingsView.authorURL)
                     // A link that does not change the pointer reads as text.
                     .onHover { inside in
                         if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
@@ -168,7 +168,7 @@ struct SettingsView: View {
         .background(.ultraThinMaterial)
     }
 
-    static let authorURL = URL(string: "https://x.com/hivinz_")!
+    static let authorURL = URL(string: "https://github.com/ArchiesDubey")!
 
     /// Narrower than the tabbed version needed: without a row of tab titles to
     /// fit, the width is set by the account rows alone.
@@ -188,7 +188,7 @@ struct SettingsView: View {
     /// this, sees four blank rings and concludes it is broken — and the
     /// distinction that catches them out is Claude *Code*, not the Claude app.
     static let setupCopy =
-        "Codenotch reads usage from tools already signed in on this Mac — it "
+        "Burnrate reads usage from tools already signed in on this Mac — it "
         + "never asks for your password. Install and sign in to any of Claude "
         + "Code (the terminal tool, not the Claude app), Cursor, Codex or "
         + "Antigravity, and its ring appears in the notch."
@@ -230,7 +230,7 @@ struct SettingsView: View {
 
 }
 
-/// One provider: whether Codenotch reads it, whose account that is, and where
+/// One provider: whether Burnrate reads it, whose account that is, and where
 /// to go if there is nothing to read.
 private struct AccountRow: View {
     let provider: ProviderSummary
@@ -331,7 +331,7 @@ private struct AccountRow: View {
             // Not a sign-in problem, so do not send them off to sign in. The
             // credential is right there and macOS is the one saying no — the
             // remedy is the button on this same row.
-            Text("macOS is not letting Codenotch read \(provider.name)'s saved "
+            Text("macOS is not letting Burnrate read \(provider.name)'s saved "
                  + "login. Choose Allow access… above, then Always Allow.")
                 .foregroundStyle(.orange)
                 .fixedSize(horizontal: false, vertical: true)

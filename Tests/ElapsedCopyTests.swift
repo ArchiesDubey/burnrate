@@ -1,5 +1,5 @@
 import XCTest
-@testable import Codenotch
+@testable import Burnrate
 
 final class ElapsedCopyTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_787_900_000)
