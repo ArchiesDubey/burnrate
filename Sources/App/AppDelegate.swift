@@ -45,10 +45,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.environment["BURNRATE_DEMO"] == "1" {
             controller.model.snapshots = Fixtures.snapshots()
         } else {
-            // Grok reads SuperGrok's weekly pool through a signed-in WebView
-            // (`Sites.grok`); `Sites.perplexity` is kept unregistered as the
-            // spare pattern for a site behind bot management.
-            let webProviders: [WebSessionProvider] = [WebSessionProvider(site: Sites.grok)]
+            // Nothing needs a browser session at the moment — Grok moved to
+            // the CLI's own auth file (`GrokLocalProvider`). `WebSessionProvider`
+            // and `Sites.perplexity` are kept: they are the working pattern for a
+            // site behind bot management, and re-registering is one line.
+            let webProviders: [WebSessionProvider] = []
             controller.signInItems = webProviders.map { provider in
                 (title: "Sign in to \(provider.displayName)…",
                  action: { [weak provider] in provider?.presentSignIn() })
@@ -70,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let store = UsageStore(
                 providers: claudeProfiles.map { ClaudeOAuthProvider(profile: $0) }
                     + [CursorLocalProvider(), CodexLocalProvider(), AntigravityProvider(),
-                       GLMProvider(), OpenCodeProvider()]
+                       GLMProvider(), OpenCodeProvider(), GrokLocalProvider()]
                     + webProviders,
                 disconnected: preferences.disconnectedProviders
             )
@@ -197,7 +198,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         var monitors: [String: any AgentActivityMonitor] = [
             "cursor": CursorActivityMonitor(),
             "codex": CodexActivityMonitor(),
-            "gemini": AntigravityActivityMonitor()
+            "gemini": AntigravityActivityMonitor(),
+            "grok": GrokActivityMonitor()
         ]
         for profile in claudeProfiles {
             monitors[profile.id] = ClaudeSessionMonitor(directory: profile.sessionsDirectory)

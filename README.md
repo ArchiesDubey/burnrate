@@ -19,16 +19,14 @@ two never disagree.
 | **Codex** | official | ChatGPT's usage endpoint, using the local Codex sign-in. Shows the 5-hour and weekly limits when available. |
 | **Antigravity** | official where licensed, otherwise a request count | Antigravity's local language server first, then Google's quota endpoint; a plain count when neither will answer for the account. |
 | **GLM** | official | Z.ai's Coding Plan monitor endpoint, with a key borrowed from whichever coding tool already holds one — Claude Code's `settings.json`, ZCode, or OpenCode. |
-| **Grok** | official | grok.com's own Usage card RPC (`GetGrokCreditsConfig`), called from inside a signed-in WebView — the weekly SuperGrok pool. Sign in once via Right-click → Sign in to Grok… |
+| **Grok** | official | Grok Build's weekly credits from the same billing endpoint the CLI uses, with the session in `~/.grok/auth.json` — run `grok login` once and the ring appears. |
 | **OpenCode** | official | The Go plan's rolling/weekly/monthly windows from `opencode.ai/zen/go/v1/usage`, with the `opencode-go` key OpenCode itself stores on sign-in. |
 
-Almost every reading is borrowed from a credential or session a tool on your
-Mac already holds — install and sign in to any of them, and its ring appears.
-The exception is Grok, which has no local tool to borrow from: its ring is read
-from inside a WebView you sign into yourself, and signing out of it in Settings
-clears that session. Switching a provider off stops its credential being read
-at all and forgets the readings taken from it; it does not sign you out of the
-tool that owns the account, and the row says so.
+Every reading is borrowed from a credential or session a tool on your Mac
+already holds — install and sign in to any of them, and its ring appears.
+Switching a provider off stops its credential being read at all and forgets
+the readings taken from it; it does not sign you out of the tool that owns
+the account, and the row says so.
 
 It also answers **"is it still working?"** — a thin arc spins inside a
 provider's ring while a session is busy, and becomes a pulsing amber ring when
