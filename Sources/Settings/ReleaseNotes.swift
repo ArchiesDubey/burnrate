@@ -31,6 +31,59 @@ struct ReleaseNote: Equatable {
 enum ReleaseNotes {
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "1.5.0",
+            headline: "Two more providers, light mode, and a live account plan that was silently dropped.",
+            changes: [
+                ReleaseNote.Change(
+                    title: "Light and dark mode",
+                    detail: "Settings → Appearance now has a theme: match your "
+                          + "Mac, or force light or dark. Every colour was "
+                          + "rebuilt as a dynamic pair, and settings text was "
+                          + "fixed to be readable in light."
+                ),
+                ReleaseNote.Change(
+                    title: "Grok is a new ring",
+                    detail: "SuperGrok's weekly Grok Build allowance, read from "
+                          + "the same billing endpoint the CLI uses, with the "
+                          + "session in ~/.grok/auth.json — no browser sign-in, "
+                          + "no resident web view."
+                ),
+                ReleaseNote.Change(
+                    title: "OpenCode's Go plan is a new ring",
+                    detail: "Reads the Go plan's official usage endpoint with "
+                          + "the key OpenCode itself stores on sign-in — no "
+                          + "second sign-in."
+                ),
+                ReleaseNote.Change(
+                    title: "A real Codex account went unmetered",
+                    detail: "Codex's live reading only recognised a 5-hour and "
+                          + "a 7-day window. A free-plan account's real limit "
+                          + "was a 30-day one, which fell through unnoticed and "
+                          + "showed as nothing metered on an account that was "
+                          + "genuinely tracked."
+                ),
+                ReleaseNote.Change(
+                    title: "Waking from sleep no longer erases a reading",
+                    detail: "A keychain read in the seconds after a long sleep "
+                          + "could read as \"signed out\" and throw away a "
+                          + "perfectly good archived reading. It is now treated "
+                          + "as what it is: not right now."
+                ),
+                ReleaseNote.Change(
+                    title: "Switching a provider off now really stops it",
+                    detail: "Opening Settings could still read a switched-off "
+                          + "provider's account, and a reply already in flight "
+                          + "could restore a reading you had just asked it to "
+                          + "forget."
+                ),
+                ReleaseNote.Change(
+                    title: "Refreshes no longer queue behind the slowest ring",
+                    detail: "Providers are read concurrently, and a quiet "
+                          + "2-second activity scan was made nearly free."
+                )
+            ]
+        ),
+        ReleaseNote(
             version: "1.4.0",
             headline: "Two more accounts, four community fixes, and honest duplicates.",
             changes: [

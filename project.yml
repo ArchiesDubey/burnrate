@@ -17,8 +17,8 @@ settings:
     # Sources/Info.plist reads both from here — hardcoding them there instead
     # silently pins every build to one version, so no customer ever sees an
     # update. Bump CURRENT_PROJECT_VERSION on every release.
-    MARKETING_VERSION: "1.4.0"
-    CURRENT_PROJECT_VERSION: "5"
+    MARKETING_VERSION: "1.5.0"
+    CURRENT_PROJECT_VERSION: "6"
     # TODO(owner): set to your Apple Developer team ID once the org account
     # exists (it appears in Xcode → Settings → Accounts, and in signing
     # certificates as "(XXXXXXXXXX)" after the name). Empty is fine until
