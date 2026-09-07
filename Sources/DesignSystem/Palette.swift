@@ -27,7 +27,13 @@ enum Palette {
     static let critical: Color      = dynamic(light: 0xE63800, dark: 0xFF3F00)
 
     static let textPrimary: Color   = dynamic(light: 0x000000, dark: 0xFFFFFF)
-    static let textSecondary: Color = dynamic(light: 0x6E6E73, dark: 0x808080)
+
+    /// Two reading greys, both measured against their own background: the
+    /// light variants hold ≥4.5:1 on white (SwiftUI's `.secondary`/`.tertiary`
+    /// resolve to ~2:1 in light mode, which nobody could read), the dark ones
+    /// keep the sampled hierarchy on black.
+    static let textSecondary: Color = dynamic(light: 0x55555C, dark: 0x808080)
+    static let textTertiary: Color  = dynamic(light: 0x73737B, dark: 0x6E6E73)
 
     /// One dynamic colour from a light and a dark hex. `NSColor(name:)`'s
     /// provider is consulted whenever the effective appearance changes, which

@@ -45,7 +45,7 @@ struct SettingsView: View {
                      + "first time, and again whenever you sign in to a different "
                      + "account; Always Allow keeps it quiet.")
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Palette.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -62,7 +62,7 @@ struct SettingsView: View {
                 Text("Light mode trades the black pill for a white one; "
                      + "Match System follows your Mac's appearance.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Picker("Show", selection: $preferences.notchVisibility) {
@@ -72,7 +72,7 @@ struct SettingsView: View {
 
                 Text(preferences.notchVisibility.explanation)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Picker("Edge", selection: $preferences.notchEdge) {
@@ -82,7 +82,7 @@ struct SettingsView: View {
 
                 Text(preferences.notchEdge.explanation)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 // "App icon", not "Icon": the two rows above it are about the
@@ -94,7 +94,7 @@ struct SettingsView: View {
 
                 Text(preferences.appPresence.explanation)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -106,7 +106,7 @@ struct SettingsView: View {
                 if let problem = preferences.launchAtLoginProblem {
                     Text(problem)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -125,7 +125,7 @@ struct SettingsView: View {
                     Text("Version \(updater.currentVersion). Updates install in the "
                          + "background and apply next time Burnrate starts.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                     Button("Check now") { updater.checkNow() }
@@ -172,7 +172,7 @@ struct SettingsView: View {
                     }
             }
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Palette.textSecondary)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
         }
@@ -223,12 +223,12 @@ struct SettingsView: View {
                     .font(.callout.weight(.medium))
                 Text(SettingsView.setupCopy)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(SettingsView.keychainCopy)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 2)
             }
@@ -319,12 +319,12 @@ private struct AccountRow: View {
     private var detail: some View {
         if !isConnected {
             Text("Signed out — nothing is read, and no readings are kept.")
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Palette.textTertiary)
         } else if let account = provider.account {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 8) {
                     Text(account.summary)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Palette.textSecondary)
                         .textSelection(.enabled)
                     if canOpenSignIn {
                         Button("Switch…") { _ = switchAccount(provider.id) }
@@ -335,7 +335,7 @@ private struct AccountRow: View {
                 // Says where the account actually lives, which is the whole
                 // answer to "how do I change it" — not here.
                 Text(provider.signIn.switchHint)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Palette.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         } else if provider.wasRefusedAccess {

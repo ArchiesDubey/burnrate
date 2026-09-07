@@ -40,10 +40,10 @@ struct WhatsNewView: View {
                 .multilineTextAlignment(.center)
             Text("Version \(note.version)")
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(Palette.textTertiary)
             Text(note.headline)
                 .font(.callout)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Palette.textSecondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 6)
@@ -88,7 +88,7 @@ struct WhatsNewChanges: View {
                         if !change.detail.isEmpty {
                             Text(change.detail)
                                 .font(.callout)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Palette.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
