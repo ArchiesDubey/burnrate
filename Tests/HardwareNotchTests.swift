@@ -468,12 +468,21 @@ final class HardwareClearanceTests: XCTestCase {
     func testTheHardwaresBandHoldsNothingButBlack() {
         let m = model()
         let size = m.notchSize
-        let renderer = ImageRenderer(
-            content: NotchRootView(model: m).frame(width: m.panelSize.width,
-                                                   height: m.panelSize.height)
-        )
-        renderer.scale = 1
-        guard let image = renderer.cgImage, let rep = NSBitmapImageRep(cgImage: image).cgImage
+        // The palette is dynamic now, and "black" is the dark variant. The
+        // test process draws with whatever appearance it woke up with, so the
+        // design-frame baseline — the one these pixels were asserted against —
+        // is pinned explicitly rather than assumed.
+        var image: CGImage?
+        NSAppearance(named: .darkAqua)!.performAsCurrentDrawingAppearance {
+            let renderer = ImageRenderer(
+                content: NotchRootView(model: m).frame(width: m.panelSize.width,
+                                                       height: m.panelSize.height)
+                    .environment(\.colorScheme, .dark)
+            )
+            renderer.scale = 1
+            image = renderer.cgImage
+        }
+        guard let image, let rep = NSBitmapImageRep(cgImage: image).cgImage
         else { return XCTFail("nothing rendered") }
         let bitmap = NSBitmapImageRep(cgImage: rep)
 

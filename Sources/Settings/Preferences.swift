@@ -26,6 +26,11 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(notchEdge.rawValue, forKey: Keys.edge) }
     }
 
+    /// Light, dark, or whatever the Mac is set to.
+    @Published var theme: Theme {
+        didSet { defaults.set(theme.rawValue, forKey: Keys.theme) }
+    }
+
     /// Where the app itself shows up: Dock, menu bar, or nowhere.
     @Published var appPresence: AppPresence {
         didSet { defaults.set(appPresence.rawValue, forKey: Keys.presence) }
@@ -59,6 +64,7 @@ final class Preferences: ObservableObject {
         static let visibility = "notchVisibility"
         static let presence = "appPresence"
         static let edge = "notchEdge"
+        static let theme = "theme"
         static let lastSeenVersion = "lastSeenVersion"
     }
 
@@ -116,6 +122,10 @@ final class Preferences: ObservableObject {
         // side of a Mac that no system chrome claims by default.
         self.notchEdge = defaults.string(forKey: Keys.edge)
             .flatMap(NotchEdge.init(rawValue:)) ?? .right
+        // Absent means never chosen, and the honest default is no opinion:
+        // the app looks like the Mac it is running on.
+        self.theme = defaults.string(forKey: Keys.theme)
+            .flatMap(Theme.init(rawValue:)) ?? .system
         // Absent means nothing has been shown yet, which is true of a fresh
         // install — so the current release reads as new to it.
         self.lastSeenVersion = defaults.string(forKey: Keys.lastSeenVersion)

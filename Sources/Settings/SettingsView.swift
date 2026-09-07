@@ -54,6 +54,17 @@ struct SettingsView: View {
             // read as three unrelated settings, and "Where Burnrate appears"
             // was a header long enough to look like a warning.
             Section("Appearance") {
+                Picker("Theme", selection: $preferences.theme) {
+                    ForEach(Theme.allCases) { Text($0.displayName).tag($0) }
+                }
+                .pickerStyle(.segmented)
+
+                Text("Light mode trades the black pill for a white one; "
+                     + "Match System follows your Mac's appearance.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 Picker("Show", selection: $preferences.notchVisibility) {
                     ForEach(NotchVisibility.allCases) { Text($0.title).tag($0) }
                 }

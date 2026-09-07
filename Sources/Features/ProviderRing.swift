@@ -160,9 +160,22 @@ struct ProviderCell: View {
     var activity: ActivitySummary?
     var isRefreshing: Bool = false
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hovering = false
+
     /// A dash, not "0%": nothing read is not the same as nothing used.
     private var percentText: String {
         snapshot.hasReading ? snapshot.headlineText : "—"
+    }
+
+    /// The label stays neutral while there is room to spare and takes the
+    /// burn colour when the limit is nearly gone — the ring has been saying
+    /// it all along; now the number agrees.
+    private var percentColor: Color {
+        let band = UsageBand.band(for: snapshot.ringFraction ?? 0)
+        return band == .critical || band == .exhausted
+            ? Palette.critical
+            : Palette.textPrimary
     }
 
     var body: some View {
@@ -175,9 +188,20 @@ struct ProviderCell: View {
                 activity: activity,
                 isRefreshing: isRefreshing
             )
+                // The ring lifts a hair toward the pointer — a cell that
+                // responds is a cell you know you can hover, and the tooltip
+                // tail anchors on the ring's centre, which a centred scale
+                // does not move. Skipped entirely under Reduce Motion.
+                .scaleEffect(hovering && !reduceMotion ? 1.06 : 1)
+                .animation(.spring(response: 0.28, dampingFraction: 0.7), value: hovering)
+                .onHover { hovering = $0 }
             Text(percentText)
                 .font(Typography.percent)
-                .foregroundStyle(Palette.textPrimary)
+                // Tabular figures: the number ticks every minute, and
+                // proportional digits would make the label wobble beneath a
+                // perfectly still ring.
+                .monospacedDigit()
+                .foregroundStyle(percentColor)
                 // Never squeezed: across a horizontal edge the cell is only as
                 // wide as the ring, and a label wider than that would be
                 // truncated rather than allowed to overhang into the spacing

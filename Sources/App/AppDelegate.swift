@@ -128,6 +128,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let statusItem = StatusItemController { [weak settings] in settings?.show() }
             self.statusItem = statusItem
 
+            // Applied up front and on every change: NSApp.appearance is what
+            // dynamic palette colours resolve against, so one assignment
+            // repaints the notch, the tooltip and Settings together.
+            NSApp.appearance = preferences.theme.nsAppearance
+            preferences.$theme
+                .receive(on: RunLoop.main)
+                .sink { NSApp.appearance = $0.nsAppearance }
+                .store(in: &cancellables)
+
             preferences.$appPresence
                 .receive(on: RunLoop.main)
                 .sink { presence in
